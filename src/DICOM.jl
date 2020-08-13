@@ -15,6 +15,7 @@ julia> tag"ROI Mean"
 ```
 """
 macro tag_str(s)
+    println("The tag macro is deprecated. Use dcm.field instead of dcm[tag\"field\"]")
     key = Symbol(filter(x -> !isspace(x), s))
     DICOM.fieldname_dict[key]
 end
@@ -136,8 +137,8 @@ function rescale!(dcm::DICOMData, direction = :forward)
         return dcm
     end
     if direction == :forward
-        dcm[tag"Pixel Data"] =
-            @. dcm[tag"Pixel Data"] * dcm[tag"Rescale Slope"] + dcm[tag"Rescale Intercept"]
+        dcm.PixelData =
+            @. dcm.PixelData * dcm.RescaleSlope + dcm.RescaleIntercept
     else
         pixel_data = dcm.PixelData
         @. pixel_data -= dcm.RescaleIntercept
@@ -168,7 +169,7 @@ isdicom(file) = last(splitext(file)) == ".dcm"
 function dcmdir_parse(dir; kwargs...)
     dicom_files = find_dicom_files(dir)
     unsorted_dicoms = [dcm_parse(file; kwargs...) for file in dicom_files]
-    dicoms = sort!(unsorted_dicoms, by = dicom -> dicom[tag"Instance Number"])
+    dicoms = sort!(unsorted_dicoms, by = dicom -> dicom.InstanceNumber)
     return dicoms
 end
 
