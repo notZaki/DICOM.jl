@@ -583,7 +583,7 @@ function dcm_write(
     preamble = true,
     aux_vr = Dict{Tuple{UInt16,UInt16},String}(),
 )
-    dcm_write(st, dcm.meta; preamble, aux_vr)
+    dcm_write(st, dcm.meta; preamble = preamble, aux_vr = aux_vr)
 end
 
 function dcm_write(fn::String, d::Dict{Tuple{UInt16,UInt16},Any}; kwargs...)
