@@ -56,7 +56,7 @@ end
     (dcmMG, vrMG) = dcm_parse(fileMG, return_vr = true)
 
     @test dcmMR_partial[(0x0008, 0x0060)] == "MR"
-    @test haskey(dcmMR_partial, (0x7FE0, 0x0010)) == false
+    @test haskey(dcmMR_partial.meta, (0x7FE0, 0x0010)) == false
 
     @test dcmMR[(0x0008, 0x0060)] == "MR"
     @test dcmCT[(0x0008, 0x0060)] == "CT"
@@ -154,8 +154,8 @@ end
     dcmCTb = dcm_parse(fileCT, preamble = false, aux_vr = dVR_CTb)
     @test dcmCTa[(0x0008, 0x0060)] == "CT"
     @test dcmCTb[(0x0008, 0x0060)] == "CT"
-    @test haskey(dcmCTa, (0x0028, 0x0040)) # dcmCTa should contain retired element
-    @test !haskey(dcmCTb, (0x0028, 0x0040)) # dcmCTb skips retired elements
+    @test haskey(dcmCTa.meta, (0x0028, 0x0040)) # dcmCTa should contain retired element
+    @test !haskey(dcmCTb.meta, (0x0028, 0x0040)) # dcmCTb skips retired elements
 
     rescale!(dcmCTa)
     @test minimum(dcmCTa[(0x7fe0, 0x0010)]) == -949

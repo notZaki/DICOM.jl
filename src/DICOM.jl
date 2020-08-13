@@ -19,6 +19,28 @@ macro tag_str(s)
     DICOM.fieldname_dict[key]
 end
 
+struct DICOMData
+    meta::Dict{Tuple{UInt16,UInt16},Any}
+end
+
+function Base.getproperty(dcm::DICOMData, sym::Symbol)
+    if sym ∈ fieldnames(DICOMData)
+        return getfield(dcm, sym)
+    else
+        return lookup(dcm, sym)
+    end
+end
+
+Base.setindex!(dcm::DICOMData, val, sym::Symbol) = setindex!(dcm.meta, val, fieldname_dict[sym])
+Base.setindex!(dcm::DICOMData, val, str::String) = setindex!(dcm.meta, val, fieldname_dict[Symbol(str)])
+Base.setindex!(dcm::DICOMData, val, tag::Tuple{UInt16,UInt16}) = setindex!(dcm.meta, val, tag)
+
+Base.setproperty!(dcm::DICOMData, sym::Symbol, val) = setindex!(dcm, val, sym)
+Base.setproperty!(dcm::DICOMData, str::String, val) = setindex!(dcm, val, str)
+
+Base.getindex(dcm::DICOMData, sym::Symbol) = lookup(dcm, sym)
+Base.getindex(dcm::DICOMData, str::String) = lookup(dcm, str)
+Base.getindex(dcm::DICOMData, tag::Tuple{UInt16,UInt16}) = dcm.meta[tag]
 
 # Create dicom dictionary - used for reading/writing DICOM files
 # Keys are tuple containing hex Group and Element of DICOM entry
@@ -100,24 +122,28 @@ function lookup_vr(gelt::Tuple{UInt16,UInt16})
     return (r[2])
 end
 
-function lookup(d::Dict{Tuple{UInt16,UInt16},Any}, fieldnameString::String)
+function lookup(d::DICOMData, fieldnameString::String)
     fieldname = Symbol(filter(x -> !isspace(x), fieldnameString))
-    return (get(d, fieldname_dict[fieldname], nothing))
+    return lookup(d, fieldname)
 end
 
-function rescale!(dcm::Dict{Tuple{UInt16,UInt16},Any}, direction = :forward)
-    if !haskey(dcm, tag"Rescale Intercept") || !haskey(dcm, tag"Rescale Slope")
+function lookup(d::DICOMData, fieldname::Symbol)
+    return (get(d.meta, fieldname_dict[fieldname], nothing))
+end
+
+function rescale!(dcm::DICOMData, direction = :forward)
+    if !haskey(dcm.meta, fieldname_dict[:RescaleIntercept]) || !haskey(dcm.meta, fieldname_dict[:RescaleSlope])
         return dcm
     end
     if direction == :forward
         dcm[tag"Pixel Data"] =
             @. dcm[tag"Pixel Data"] * dcm[tag"Rescale Slope"] + dcm[tag"Rescale Intercept"]
     else
-        pixel_data = dcm[tag"Pixel Data"]
-        @. pixel_data -= dcm[tag"Rescale Intercept"]
-        @. pixel_data /= dcm[tag"Rescale Slope"]
-        dtype = determine_dtype(dcm)
-        dcm[tag"Pixel Data"] = @. convert(dtype, round(pixel_data))
+        pixel_data = dcm.PixelData
+        @. pixel_data -= dcm.RescaleIntercept
+        @. pixel_data /= dcm.RescaleSlope
+        dtype = determine_dtype(dcm.meta)
+        dcm.PixelData = @. convert(dtype, round(pixel_data))
     end
     return dcm
 end
@@ -177,10 +203,11 @@ function dcm_parse(
     is_explicit, endian = determine_explicitness_and_endianness(dcm)
     file_properties = (is_explicit = is_explicit, endian = endian, aux_vr = aux_vr)
     (dcm, vr) = read_body(st, dcm, file_properties; max_group = max_group)
+    dcmdata = DICOMData(dcm)
     if return_vr
-        return dcm, vr
+        return dcmdata, vr
     else
-        return dcm
+        return dcmdata
     end
 end
 
@@ -546,6 +573,18 @@ function undefined_length(st, vr)
     take!(data)
 end
 
+function dcm_write(fn::String, d::DICOMData; kwargs...)
+    dcm_write(fn, d.meta; kwargs...)
+end
+
+function dcm_write(
+    st::IO,
+    dcm::DICOMData;
+    preamble = true,
+    aux_vr = Dict{Tuple{UInt16,UInt16},String}(),
+)
+    dcm_write(st, dcm.meta; preamble, aux_vr)
+end
 
 function dcm_write(fn::String, d::Dict{Tuple{UInt16,UInt16},Any}; kwargs...)
     st = open(fn, "w+")
