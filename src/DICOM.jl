@@ -15,7 +15,8 @@ julia> tag"ROI Mean"
 ```
 """
 macro tag_str(s)
-    DICOM.fieldname_dict[s]
+    key = Symbol(filter(x -> !isspace(x), s))
+    DICOM.fieldname_dict[key]
 end
 
 
@@ -32,7 +33,7 @@ include("dcm_dict.jl")  # const dcm_dict = ...
 # For convenience, dictionary to get hex tag from field name, e.g:
 # Julia> DICOM.fieldname_dict["Specific Character Set"]
 # (0x0008, 0x0005)
-fieldname_dict = Dict(val[1] => key for (key, val) in dcm_dict)
+fieldname_dict = Dict(Symbol(val[1]) => key for (key, val) in dcm_dict)
 
 # These "empty" values are used internally. They are returned if a search fails.
 const empty_vr = "" # Can be any VR that doesn't exist
@@ -100,7 +101,8 @@ function lookup_vr(gelt::Tuple{UInt16,UInt16})
 end
 
 function lookup(d::Dict{Tuple{UInt16,UInt16},Any}, fieldnameString::String)
-    return (get(d, fieldname_dict[fieldnameString], nothing))
+    fieldname = Symbol(filter(x -> !isspace(x), fieldnameString))
+    return (get(d, fieldname_dict[fieldname], nothing))
 end
 
 function rescale!(dcm::Dict{Tuple{UInt16,UInt16},Any}, direction = :forward)
