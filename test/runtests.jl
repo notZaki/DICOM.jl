@@ -25,6 +25,8 @@ const dicom_samples = Dict(
         "https://github.com/notZaki/DICOMSamples/raw/master/DICOMSamples/US_Explicit_Big_RGB.dcm",
     "DX_Implicit_Little_Interleaved.dcm" =>
         "https://github.com/OHIF/viewer-testdata/raw/master/dcm/zoo-exotic/5.dcm",
+    "rtstruct.dcm" => 
+        "https://github.com/notZaki/DICOMSamples/raw/master/DICOMSamples/rtstruct.dcm",
 )
 
 function download_dicom(filename; folder = data_folder)
@@ -178,6 +180,15 @@ end
     fileDX = download_dicom("DX_Implicit_Little_Interleaved.dcm")
     dcmDX = dcm_parse(fileDX)
     @test size(dcmDX[(0x7fe0, 0x0010)]) == (1590, 2593, 3)
+end
+
+@testset "Extract RTStruct regions" begin
+    rtstruct = download_dicom("rtstruct.dcm")
+    dcm = dcm_parse(rtstruct)
+    regions = rtstruct_regions(dcm)
+    @test length(regions) == 8
+    @test length(regions["Parotid_L"]) == 34
+    @test length(regions["Parotid_L"][47.0]) == 67
 end
 
 @testset "Test tag macro" begin

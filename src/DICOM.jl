@@ -692,4 +692,6 @@ function pixeldata_write(st, d, evr)
     end
 end
 
+include("rtstruct.jl")
+
 end
