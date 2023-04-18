@@ -26,7 +26,7 @@ const dicom_samples = Dict(
     "US_Explicit_Big_RGB.dcm" =>
         "https://github.com/notZaki/DICOMSamples/raw/master/DICOMSamples/US_Explicit_Big_RGB.dcm",
     "DX_Implicit_Little_Interleaved.dcm" =>
-        "https://github.com/OHIF/viewer-testdata/raw/master/dcm/zoo-exotic/5.dcm",
+        "https://github.com/notZaki/DICOMSamples/raw/master/DICOMSamples/DX_Implicit_Little_Interleaved.dcm",
 )
 
 function download_dicom(filename; folder = data_folder)
